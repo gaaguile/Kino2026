@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build-from-xlsx": "ts-node src/build-from-xlsx.ts",
+    "scrape": "ts-node src/scraper.ts"
   },
   "repository": {
     "type": "git",
@@ -17,6 +19,7 @@
   },
   "homepage": "https://github.com/gaaguile/Kino2026#readme",
   "dependencies": {
+    "exceljs": "^4.4.0",
     "playwright": "^1.62.1"
   },
   "devDependencies": {
