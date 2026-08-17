@@ -1,10 +1,48 @@
 import { chromium, Browser, Page } from 'playwright';
 import * as fs from 'fs';
 
+interface RawDraw {
+  date: string;
+  numbers: number[];
+}
+
 interface KinoDraw {
   date: string;
   numbers: number[];
-  drawNumber?: string;
+  drawNumber: number;
+}
+
+// The source site only exposes results per calendar year via #year_selection;
+// each year must be selected and "Load All" clicked to reveal its full history.
+async function scrapeYear(page: Page, year: string): Promise<RawDraw[]> {
+  // The year switch and "Load All" button re-render via client-side JS, not
+  // navigation, so networkidle resolves before the DOM updates; fixed delays
+  // proved reliable instead.
+  await page.selectOption('#year_selection', year);
+  await page.waitForTimeout(1500);
+
+  const loadAllButton = page.locator('text=/Load All Past Results/');
+  if (await loadAllButton.count()) {
+    await loadAllButton.first().click();
+    await page.waitForTimeout(2500);
+  }
+
+  return page.evaluate(() => {
+    const results: { date: string; numbers: number[] }[] = [];
+
+    document.querySelectorAll('.custom-row.custom-row2').forEach((card) => {
+      const date = card.querySelector('.lottery-date')?.textContent?.trim();
+      const numbers = Array.from(card.querySelectorAll('.lottery-balls-below *'))
+        .map((element) => Number(element.textContent?.trim()))
+        .filter((number) => Number.isInteger(number) && number >= 1 && number <= 25);
+
+      if (date && numbers.length === 14 && new Set(numbers).size === 14) {
+        results.push({ date, numbers: numbers.sort((a, b) => a - b) });
+      }
+    });
+
+    return results;
+  });
 }
 
 async function scrapeKinoWithPlaywright(): Promise<KinoDraw[]> {
@@ -34,90 +72,27 @@ async function scrapeKinoWithPlaywright(): Promise<KinoDraw[]> {
       timeout: 60000,
     });
 
-    // Wait for results to appear (adjust selector if needed)
-    await page.waitForSelector('body', { timeout: 15000 });
+    await page.waitForSelector('#year_selection', { timeout: 15000 });
 
-    // Optional: scroll down to load more results if the page uses infinite scroll
-    await autoScroll(page);
+    const years = await page
+      .locator('#year_selection option')
+      .evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value));
 
-    console.log('Extracting data...');
+    const rawDraws: RawDraw[] = [];
+    for (const year of years) {
+      console.log(`Extracting data for ${year}...`);
+      rawDraws.push(...(await scrapeYear(page, year)));
+    }
 
-    const draws = await page.evaluate(() => {
-      const results: { date: string; numbers: number[] }[] = [];
+    const uniqueByDate = Array.from(new Map(rawDraws.map((draw) => [draw.date, draw])).values());
+    uniqueByDate.sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
 
-      // Try different possible structures
-      // Strategy 1: Look for date headings + nearby numbers
-      const dateElements = Array.from(
-        document.querySelectorAll('h2, h3, .date, .draw-date, .result-date, strong')
-      );
-
-      dateElements.forEach((el) => {
-        const dateText = el.textContent?.trim() || '';
-
-        // Skip if it doesn't look like a date
-        if (!dateText.match(/\d{4}|\b(January|February|March|April|May|June|July|August|September|October|November|December|Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\b/i)) {
-          return;
-        }
-
-        // Get the next sibling or parent content that might contain numbers
-        let container = el.parentElement || el;
-        let numbersText = container.textContent || '';
-
-        // Extract numbers between 1 and 25
-        const matches = numbersText.match(/\b([1-9]|1[0-9]|2[0-5])\b/g);
-
-        if (matches && matches.length >= 14) {
-          const numbers = [...new Set(matches.map((n) => parseInt(n, 10)))]
-            .filter((n) => n >= 1 && n <= 25)
-            .slice(0, 14)
-            .sort((a, b) => a - b);
-
-          if (numbers.length === 14) {
-            results.push({
-              date: dateText,
-              numbers,
-            });
-          }
-        }
-      });
-
-      // Strategy 2: Fallback - look for any list of 14 numbers
-      if (results.length === 0) {
-        const allText = document.body.innerText;
-        const lines = allText.split('\n');
-
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].trim();
-          const numbersInLine = line.match(/\b([1-9]|1[0-9]|2[0-5])\b/g);
-
-          if (numbersInLine && numbersInLine.length >= 14) {
-            const numbers = [...new Set(numbersInLine.map((n) => parseInt(n, 10)))]
-              .filter((n) => n >= 1 && n <= 25)
-              .slice(0, 14)
-              .sort((a, b) => a - b);
-
-            if (numbers.length === 14) {
-              // Try to find a nearby date
-              const possibleDate = lines[i - 1] || lines[i - 2] || `Draw ${results.length + 1}`;
-              results.push({
-                date: possibleDate.trim(),
-                numbers,
-              });
-            }
-          }
-        }
-      }
-
-      // Remove duplicates by date
-      const unique = results.filter(
-        (item, index, self) =>
-          index === self.findIndex((t) => t.date === item.date)
-      );
-
-      return unique;
-    });
-
-    return draws;
+    // No official "sorteo" number is exposed by the source, so number draws
+    // sequentially in chronological order (oldest = 1).
+    return uniqueByDate.map((draw, index) => ({
+      ...draw,
+      drawNumber: index + 1,
+    }));
   } catch (error) {
     console.error('Error during scraping:', error);
     return [];
@@ -126,26 +101,6 @@ async function scrapeKinoWithPlaywright(): Promise<KinoDraw[]> {
       await browser.close();
     }
   }
-}
-
-// Helper: auto-scroll to load more content
-async function autoScroll(page: Page) {
-  await page.evaluate(async () => {
-    await new Promise<void>((resolve) => {
-      let totalHeight = 0;
-      const distance = 400;
-      const timer = setInterval(() => {
-        const scrollHeight = document.body.scrollHeight;
-        window.scrollBy(0, distance);
-        totalHeight += distance;
-
-        if (totalHeight >= scrollHeight - window.innerHeight) {
-          clearInterval(timer);
-          resolve();
-        }
-      }, 300);
-    });
-  });
 }
 
 async function main() {
@@ -167,6 +122,7 @@ async function main() {
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<kinoHistory>\n`;
   draws.forEach((draw) => {
     xml += `  <draw>\n`;
+    xml += `    <drawNumber>${draw.drawNumber}</drawNumber>\n`;
     xml += `    <date>${draw.date.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</date>\n`;
     xml += `    <numbers>${draw.numbers.join(',')}</numbers>\n`;
     xml += `  </draw>\n`;
