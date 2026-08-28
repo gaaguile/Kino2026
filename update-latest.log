@@ -18,3 +18,13 @@ Latest draw on site: #3268 (19/08/2026) -> 2,3,6,8,11,13,14,15,16,18,19,20,23,24
 Latest draw on site: #3270 (23/08/2026) -> 1,6,7,8,9,10,11,16,19,20,21,23,24,25
 Ô£à Added draw #3270 ÔåÆ kino-history.json / kino-history.xml
 
+[2026-08-26 10:00:01] Starting scheduled Kino update...
+[2026-08-26T14:00:04.819Z] Checking https://www.loteria.cl/resultados/resultado-completo/?id=kino for the latest Kino draw...
+Latest draw on site: #3270 (23/08/2026) -> 1,6,7,8,9,10,11,16,19,20,21,23,24,25
+Ô£à Added draw #3270 ÔåÆ kino-history.json / kino-history.xml
+
+[2026-08-28 10:00:01] Starting scheduled Kino update...
+[2026-08-28T14:00:04.196Z] Checking https://www.loteria.cl/resultados/resultado-completo/?id=kino for the latest Kino draw...
+Latest draw on site: #3271 (26/08/2026) -> 4,6,11,13,15,16,17,18,20,21,22,23,24,25
+Ô£à Added draw #3271 ÔåÆ kino-history.json / kino-history.xml
+
