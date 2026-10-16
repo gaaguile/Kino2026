@@ -1,0 +1,7 @@
+services:
+  kino-update:
+    build: .
+    image: kino2026:latest
+    volumes:
+      - ./kino-history.json:/app/kino-history.json
+      - ./kino-history.xml:/app/kino-history.xml
