@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "analyze": "ts-node src/analyze-kino.ts",
     "build-from-xlsx": "ts-node src/build-from-xlsx.ts",
     "scrape": "ts-node src/scraper.ts",
     "update-latest": "ts-node src/update-latest.ts"

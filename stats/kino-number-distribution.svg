@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="650" viewBox="0 0 1100 650">
+    <style>
+        text { fill: #243238; font-family: Georgia, 'Times New Roman', serif; }
+        .title { font-size: 27px; font-weight: bold; }
+        .subtitle { font-size: 15px; fill: #58666a; }
+        .tick { font-size: 12px; fill: #58666a; }
+        .axis-label { font-size: 14px; }
+        .grid { stroke: #dce3df; stroke-width: 1; }
+        .bar { fill: #43836f; }
+        .fit { stroke: #bd663c; stroke-width: 3; stroke-dasharray: 8 6; }
+    </style>
+    <rect width="100%" height="100%" fill="#fbfaf6" />
+    <text x="90" y="43" class="title">Kino number frequency</text>
+    <text x="90" y="72" class="subtitle">3,268 draws · 46,551 number appearances · values 1–25</text>
+    
+        <line x1="90" y1="490" x2="1040" y2="490" class="grid" />
+        <text x="76" y="495" class="tick" text-anchor="end">0</text>
+        <line x1="90" y1="395" x2="1040" y2="395" class="grid" />
+        <text x="76" y="400" class="tick" text-anchor="end">500</text>
+        <line x1="90" y1="300" x2="1040" y2="300" class="grid" />
+        <text x="76" y="305" class="tick" text-anchor="end">1,000</text>
+        <line x1="90" y1="205" x2="1040" y2="205" class="grid" />
+        <text x="76" y="210" class="tick" text-anchor="end">1,500</text>
+        <line x1="90" y1="110" x2="1040" y2="110" class="grid" />
+        <text x="76" y="115" class="tick" text-anchor="end">2,000</text>
+    <line x1="90" y1="136.2124" x2="1040" y2="136.2124" class="fit" />
+    <rect x="96.1" y="133.9" width="25.8" height="356.1" class="bar"><title>Number 1: 1,874 appearances</title></rect>
+        <text x="109.0" y="514" class="tick" text-anchor="middle">1</text><rect x="134.1" y="142.5" width="25.8" height="347.5" class="bar"><title>Number 2: 1,829 appearances</title></rect>
+        <text x="147.0" y="514" class="tick" text-anchor="middle">2</text><rect x="172.1" y="141.5" width="25.8" height="348.5" class="bar"><title>Number 3: 1,834 appearances</title></rect>
+        <text x="185.0" y="514" class="tick" text-anchor="middle">3</text><rect x="210.1" y="130.3" width="25.8" height="359.7" class="bar"><title>Number 4: 1,893 appearances</title></rect>
+        <text x="223.0" y="514" class="tick" text-anchor="middle">4</text><rect x="248.1" y="127.1" width="25.8" height="362.9" class="bar"><title>Number 5: 1,910 appearances</title></rect>
+        <text x="261.0" y="514" class="tick" text-anchor="middle">5</text><rect x="286.1" y="136.6" width="25.8" height="353.4" class="bar"><title>Number 6: 1,860 appearances</title></rect>
+        <text x="299.0" y="514" class="tick" text-anchor="middle">6</text><rect x="324.1" y="137.6" width="25.8" height="352.4" class="bar"><title>Number 7: 1,855 appearances</title></rect>
+        <text x="337.0" y="514" class="tick" text-anchor="middle">7</text><rect x="362.1" y="130.9" width="25.8" height="359.1" class="bar"><title>Number 8: 1,890 appearances</title></rect>
+        <text x="375.0" y="514" class="tick" text-anchor="middle">8</text><rect x="400.1" y="131.5" width="25.8" height="358.5" class="bar"><title>Number 9: 1,887 appearances</title></rect>
+        <text x="413.0" y="514" class="tick" text-anchor="middle">9</text><rect x="438.1" y="120.6" width="25.8" height="369.4" class="bar"><title>Number 10: 1,944 appearances</title></rect>
+        <text x="451.0" y="514" class="tick" text-anchor="middle">10</text><rect x="476.1" y="137.6" width="25.8" height="352.4" class="bar"><title>Number 11: 1,855 appearances</title></rect>
+        <text x="489.0" y="514" class="tick" text-anchor="middle">11</text><rect x="514.1" y="129.0" width="25.8" height="361.0" class="bar"><title>Number 12: 1,900 appearances</title></rect>
+        <text x="527.0" y="514" class="tick" text-anchor="middle">12</text><rect x="552.1" y="134.7" width="25.8" height="355.3" class="bar"><title>Number 13: 1,870 appearances</title></rect>
+        <text x="565.0" y="514" class="tick" text-anchor="middle">13</text><rect x="590.1" y="144.4" width="25.8" height="345.6" class="bar"><title>Number 14: 1,819 appearances</title></rect>
+        <text x="603.0" y="514" class="tick" text-anchor="middle">14</text><rect x="628.1" y="136.0" width="25.8" height="354.0" class="bar"><title>Number 15: 1,863 appearances</title></rect>
+        <text x="641.0" y="514" class="tick" text-anchor="middle">15</text><rect x="666.1" y="141.0" width="25.8" height="349.0" class="bar"><title>Number 16: 1,837 appearances</title></rect>
+        <text x="679.0" y="514" class="tick" text-anchor="middle">16</text><rect x="704.1" y="141.7" width="25.8" height="348.3" class="bar"><title>Number 17: 1,833 appearances</title></rect>
+        <text x="717.0" y="514" class="tick" text-anchor="middle">17</text><rect x="742.1" y="135.1" width="25.8" height="354.9" class="bar"><title>Number 18: 1,868 appearances</title></rect>
+        <text x="755.0" y="514" class="tick" text-anchor="middle">18</text><rect x="780.1" y="141.2" width="25.8" height="348.8" class="bar"><title>Number 19: 1,836 appearances</title></rect>
+        <text x="793.0" y="514" class="tick" text-anchor="middle">19</text><rect x="818.1" y="142.3" width="25.8" height="347.7" class="bar"><title>Number 20: 1,830 appearances</title></rect>
+        <text x="831.0" y="514" class="tick" text-anchor="middle">20</text><rect x="856.1" y="138.3" width="25.8" height="351.7" class="bar"><title>Number 21: 1,851 appearances</title></rect>
+        <text x="869.0" y="514" class="tick" text-anchor="middle">21</text><rect x="894.1" y="143.3" width="25.8" height="346.8" class="bar"><title>Number 22: 1,825 appearances</title></rect>
+        <text x="907.0" y="514" class="tick" text-anchor="middle">22</text><rect x="932.1" y="141.7" width="25.8" height="348.3" class="bar"><title>Number 23: 1,833 appearances</title></rect>
+        <text x="945.0" y="514" class="tick" text-anchor="middle">23</text><rect x="970.1" y="135.5" width="25.8" height="354.5" class="bar"><title>Number 24: 1,866 appearances</title></rect>
+        <text x="983.0" y="514" class="tick" text-anchor="middle">24</text><rect x="1008.1" y="131.1" width="25.8" height="358.9" class="bar"><title>Number 25: 1,889 appearances</title></rect>
+        <text x="1021.0" y="514" class="tick" text-anchor="middle">25</text>
+    <line x1="90" y1="110" x2="90" y2="490" stroke="#647174" />
+    <line x1="90" y1="490" x2="1040" y2="490" stroke="#647174" />
+    <text x="565" y="550" class="axis-label" text-anchor="middle">Drawn number</text>
+    <text x="25" y="300" class="axis-label" text-anchor="middle" transform="rotate(-90 25 300)">Appearances across all draws</text>
+    <line x1="100" y1="592" x2="132" y2="592" class="fit" />
+    <text x="140" y="597" class="subtitle">Discrete uniform fit: 1,862.04 expected appearances per number</text>
+    <text x="1040" y="597" class="subtitle" text-anchor="end">Pearson χ² = 12.43 (24 df)</text>
+    </svg>
