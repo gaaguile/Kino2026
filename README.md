@@ -25,10 +25,13 @@ flowchart LR
         analyze[analyze]
         verify[verify]
         publish[publish]
+        notify[notify]
     end
 
     chart --> publish
     publish -->|deploy| web
+    history --> notify
+    notify -->|email| inbox([inbox])
 
     loteria -->|new draws| update
     workbook --> build
@@ -49,6 +52,7 @@ flowchart LR
 | `npm run verify` | Compares the history with lotterytexts.com by date. Read-only. |
 | `npm run build-from-xlsx` | Rebuilds the whole history from the workbook. |
 | `npm run publish` | Builds the web page and deploys it to Cloudflare Pages if the chart changed (`-- --force` deploys anyway, `-- --build-only` only builds `dist/site`). |
+| `npm run notify` | Emails how many numbers of each new draw were among the 14 most and 14 least frequent (`-- --preview` prints the email instead, `-- --draw N` reports on draw N). |
 | `npm test` | Type-checks the project. |
 
 `update-latest` recovers skipped runs on its own, but only as far back as the
@@ -68,8 +72,8 @@ npm run update-latest
 ```
 
 On Windows, `run-update.ps1` runs the update, redraws the chart, publishes the
-web page (once `.env` exists, see below) and appends the output to
-`update-latest.log`. To schedule it, run `register-update-task.ps1` once from an
+web page, sends the email (both once `.env` exists, see below) and appends the
+output to `update-latest.log`. To schedule it, run `register-update-task.ps1` once from an
 elevated PowerShell: it registers a task that runs the update on Monday,
 Thursday and Saturday at 10:00, whether or not anyone is logged on.
 
@@ -95,3 +99,22 @@ setup, on the machine that runs the scheduled update:
    domains**, add `kino.gabrieltekken.com`.
 
 `.env` is git-ignored and must never be committed.
+
+## Email
+
+After each new draw, `npm run notify` emails how many of the drawn numbers were
+among the 14 most frequent and the 14 least frequent. Both groups are ranked on
+the draws before that one, so the draw does not count towards its own ranking.
+If a run adds several draws, they go in one email.
+
+It sends through Gmail. In your Google account, create an app password
+(**Security › 2-Step Verification › App passwords**), then put your address in
+`.env` as `GMAIL_USER` and the app password as `GMAIL_APP_PASSWORD`. The email
+goes to `GMAIL_USER` unless `NOTIFY_TO` names another address. Without these
+values the script says so and sends nothing.
+
+The first run emails the latest draw. To see the email without sending it:
+
+```sh
+npm run notify -- --preview
+```

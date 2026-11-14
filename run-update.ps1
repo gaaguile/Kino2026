@@ -26,16 +26,22 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-# Publish the chart to Cloudflare Pages. Skipped until .env holds the credentials.
+# Publishing and the email need credentials from .env; skipped until it exists.
 if (-not (Test-Path (Join-Path $PSScriptRoot '.env'))) {
-    "[$timestamp] No .env file; chart not published." | Add-Content -Path $logPath -Encoding utf8
+    "[$timestamp] No .env file; chart not published, email not sent." | Add-Content -Path $logPath -Encoding utf8
     exit 0
 }
 
-$output = & $tsNode src/publish.ts 2>&1 | Out-String
-$output | Add-Content -Path $logPath -Encoding utf8
+# Publish the chart to Cloudflare Pages, then email the new draws' matches.
+# The email is still attempted if publishing fails.
+$failed = 0
+foreach ($script in 'publish.ts', 'notify.ts') {
+    $output = & $tsNode "src/$script" 2>&1 | Out-String
+    $output | Add-Content -Path $logPath -Encoding utf8
 
-if ($LASTEXITCODE -ne 0) {
-    "[$timestamp] ERROR: publish.ts exited with code $LASTEXITCODE" | Add-Content -Path $logPath -Encoding utf8
-    exit $LASTEXITCODE
+    if ($LASTEXITCODE -ne 0) {
+        "[$timestamp] ERROR: $script exited with code $LASTEXITCODE" | Add-Content -Path $logPath -Encoding utf8
+        $failed = $LASTEXITCODE
+    }
 }
+exit $failed
