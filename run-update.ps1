@@ -10,4 +10,14 @@ $output | Add-Content -Path $logPath -Encoding utf8
 
 if ($LASTEXITCODE -ne 0) {
     "[$timestamp] ERROR: update-latest.ts exited with code $LASTEXITCODE" | Add-Content -Path $logPath -Encoding utf8
+    exit $LASTEXITCODE
+}
+
+# Redraw the frequency chart so it includes the draws just added.
+$output = & $tsNode src/analyze-kino.ts 2>&1 | Out-String
+$output | Add-Content -Path $logPath -Encoding utf8
+
+if ($LASTEXITCODE -ne 0) {
+    "[$timestamp] ERROR: analyze-kino.ts exited with code $LASTEXITCODE" | Add-Content -Path $logPath -Encoding utf8
+    exit $LASTEXITCODE
 }

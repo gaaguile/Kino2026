@@ -8,7 +8,7 @@
     "analyze": "ts-node src/analyze-kino.ts",
     "build-from-xlsx": "ts-node src/build-from-xlsx.ts",
     "verify": "ts-node src/scraper.ts",
-    "update-latest": "ts-node src/update-latest.ts"
+    "update-latest": "ts-node src/update-latest.ts && ts-node src/analyze-kino.ts"
   },
   "repository": {
     "type": "git",

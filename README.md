@@ -39,7 +39,7 @@ flowchart LR
 
 | Command | What it does |
 | --- | --- |
-| `npm run update-latest` | Adds every draw the history is missing from loteria.cl. |
+| `npm run update-latest` | Adds every draw the history is missing from loteria.cl, then runs `analyze`. |
 | `npm run analyze` | Regenerates the frequency chart from `kino-history.json`. |
 | `npm run verify` | Compares the history with lotterytexts.com by date. Read-only. |
 | `npm run build-from-xlsx` | Rebuilds the whole history from the workbook. |
@@ -61,15 +61,16 @@ npx playwright install chromium
 npm run update-latest
 ```
 
-On Windows, `run-update.ps1` runs the update and appends the output to
-`update-latest.log`. To schedule it, run `register-update-task.ps1` once from an
+On Windows, `run-update.ps1` runs the update, redraws the chart and appends the
+output to `update-latest.log`. To schedule it, run `register-update-task.ps1` once from an
 elevated PowerShell: it registers a task that runs the update on Monday,
 Thursday and Saturday at 10:00, whether or not anyone is logged on.
 
 ## Docker
 
 The image is a one-shot job, not a web server. It uses Playwright to fetch new
-draws and updates `kino-history.json` and `kino-history.xml` on the host.
+draws, updates `kino-history.json` and `kino-history.xml` on the host, and
+redraws the chart in `stats`.
 
 Build the image and run an update:
 
