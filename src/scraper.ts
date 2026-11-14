@@ -1,15 +1,23 @@
 import { chromium, Browser, Page } from 'playwright';
-import * as fs from 'fs';
+import { readHistory } from './history';
+
+// This source (lotterytexts.com) does not expose the official "sorteo" number,
+// so it cannot feed kino-history directly. The script is a cross-check only:
+// it compares the site's draws with the recorded history, by date, and never
+// writes the history files. History is built by build-from-xlsx and extended
+// by update-latest, both of which carry official draw numbers.
 
 interface RawDraw {
   date: string;
   numbers: number[];
 }
 
-interface KinoDraw {
-  date: string;
-  numbers: number[];
-  drawNumber: number;
+// Calendar-day key, independent of how each source spells the date.
+function dayKey(date: string): string {
+  const parsed = new Date(Date.parse(date));
+  if (Number.isNaN(parsed.getTime())) throw new Error(`Unrecognized date: "${date}"`);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`;
 }
 
 // The source site only exposes results per calendar year via #year_selection;
@@ -45,7 +53,7 @@ async function scrapeYear(page: Page, year: string): Promise<RawDraw[]> {
   });
 }
 
-async function scrapeKinoWithPlaywright(): Promise<KinoDraw[]> {
+async function scrapeKinoWithPlaywright(): Promise<RawDraw[]> {
   let browser: Browser | null = null;
 
   try {
@@ -84,18 +92,7 @@ async function scrapeKinoWithPlaywright(): Promise<KinoDraw[]> {
       rawDraws.push(...(await scrapeYear(page, year)));
     }
 
-    const uniqueByDate = Array.from(new Map(rawDraws.map((draw) => [draw.date, draw])).values());
-    uniqueByDate.sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
-
-    // No official "sorteo" number is exposed by the source, so number draws
-    // sequentially in chronological order (oldest = 1).
-    return uniqueByDate.map((draw, index) => ({
-      ...draw,
-      drawNumber: index + 1,
-    }));
-  } catch (error) {
-    console.error('Error during scraping:', error);
-    return [];
+    return Array.from(new Map(rawDraws.map((draw) => [dayKey(draw.date), draw])).values());
   } finally {
     if (browser) {
       await browser.close();
@@ -104,33 +101,37 @@ async function scrapeKinoWithPlaywright(): Promise<KinoDraw[]> {
 }
 
 async function main() {
-  console.log('Starting Playwright Kino scraper...\n');
+  console.log('Starting Playwright Kino scraper (cross-check, read-only)...\n');
 
-  const draws = await scrapeKinoWithPlaywright();
-
-  if (draws.length === 0) {
-    console.log('No draws found. The website structure may have changed.');
-    console.log('Tip: Open the page in a browser and inspect the HTML to update the selectors.');
-    return;
+  const scraped = await scrapeKinoWithPlaywright();
+  if (scraped.length === 0) {
+    throw new Error('No draws found. The website structure may have changed; inspect the page and update the selectors.');
   }
 
-  // Save as JSON
-  fs.writeFileSync('kino-history.json', JSON.stringify(draws, null, 2), 'utf-8');
-  console.log(`✅ Saved ${draws.length} draws → kino-history.json`);
+  const history = new Map(readHistory().map((draw) => [dayKey(draw.date), draw]));
+  const mismatched: string[] = [];
+  const missing: string[] = [];
 
-  // Also save as XML
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<kinoHistory>\n`;
-  draws.forEach((draw) => {
-    xml += `  <draw>\n`;
-    xml += `    <drawNumber>${draw.drawNumber}</drawNumber>\n`;
-    xml += `    <date>${draw.date.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</date>\n`;
-    xml += `    <numbers>${draw.numbers.join(',')}</numbers>\n`;
-    xml += `  </draw>\n`;
-  });
-  xml += `</kinoHistory>`;
+  for (const draw of scraped) {
+    const recorded = history.get(dayKey(draw.date));
+    if (!recorded) {
+      missing.push(`${draw.date} -> ${draw.numbers.join(',')}`);
+    } else if (recorded.numbers.join(',') !== draw.numbers.join(',')) {
+      mismatched.push(`#${recorded.drawNumber} ${draw.date}: history ${recorded.numbers.join(',')} vs site ${draw.numbers.join(',')}`);
+    }
+  }
 
-  fs.writeFileSync('kino-history.xml', xml, 'utf-8');
-  console.log(`✅ Saved ${draws.length} draws → kino-history.xml`);
+  console.log(`Compared ${scraped.length} scraped draws against kino-history.json.`);
+  console.log(`Matching: ${scraped.length - mismatched.length - missing.length}`);
+  console.log(`Different numbers: ${mismatched.length}`);
+  mismatched.forEach((line) => console.log(`  ${line}`));
+  console.log(`On the site but not in history: ${missing.length}`);
+  missing.forEach((line) => console.log(`  ${line}`));
+
+  if (mismatched.length > 0 || missing.length > 0) process.exitCode = 1;
 }
 
-main();
+main().catch((error: unknown) => {
+  console.error('Scrape failed:', error);
+  process.exitCode = 1;
+});

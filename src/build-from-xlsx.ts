@@ -1,26 +1,6 @@
 import ExcelJS from 'exceljs';
 import * as path from 'path';
-import * as fs from 'fs';
-
-interface KinoDraw {
-    date: string;
-    numbers: number[];
-    drawNumber: number;
-}
-
-const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
-    weekday: 'long',
-    month: 'short',
-    day: '2-digit',
-    year: 'numeric',
-    timeZone: 'UTC',
-});
-
-// Source dates are "DD-MM-YYYY"; parsed as UTC to avoid local-timezone day shifts.
-function parseSourceDate(raw: string): Date {
-    const [day, month, year] = raw.split('-').map(Number);
-    return new Date(Date.UTC(year, month - 1, day));
-}
+import { KinoDraw, formatSourceDate, writeHistory } from './history';
 
 async function buildFromXlsx(): Promise<KinoDraw[]> {
     const workbook = new ExcelJS.Workbook();
@@ -50,11 +30,14 @@ async function buildFromXlsx(): Promise<KinoDraw[]> {
             .filter((value) => Number.isInteger(value) && value >= 1 && value <= 25);
 
         const isValid = (numbers.length === 14 || numbers.length === 15) && new Set(numbers).size === numbers.length;
-        if (!isValid) return;
+        if (!isValid) {
+            console.warn(`Skipping workbook row ${rowNumber} (draw #${drawNumber}): invalid number set`);
+            return;
+        }
 
         draws.push({
             drawNumber,
-            date: DATE_FORMATTER.format(parseSourceDate(rawDate)),
+            date: formatSourceDate(rawDate),
             numbers: numbers.sort((a, b) => a - b),
         });
     });
@@ -68,27 +51,14 @@ async function main() {
     const draws = await buildFromXlsx();
 
     if (draws.length === 0) {
-        console.log('No draws found in the xlsx file. Check the sheet structure.');
-        return;
+        throw new Error('No draws found in the xlsx file. Check the sheet structure.');
     }
 
-    const jsonPath = path.join(__dirname, '..', 'kino-history.json');
-    fs.writeFileSync(jsonPath, JSON.stringify(draws, null, 2), 'utf-8');
-    console.log(`✅ Saved ${draws.length} draws → kino-history.json`);
-
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<kinoHistory>\n`;
-    draws.forEach((draw) => {
-        xml += `  <draw>\n`;
-        xml += `    <drawNumber>${draw.drawNumber}</drawNumber>\n`;
-        xml += `    <date>${draw.date.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</date>\n`;
-        xml += `    <numbers>${draw.numbers.join(',')}</numbers>\n`;
-        xml += `  </draw>\n`;
-    });
-    xml += `</kinoHistory>`;
-
-    const xmlPath = path.join(__dirname, '..', 'kino-history.xml');
-    fs.writeFileSync(xmlPath, xml, 'utf-8');
-    console.log(`✅ Saved ${draws.length} draws → kino-history.xml`);
+    writeHistory(draws);
+    console.log(`✅ Saved ${draws.length} draws → kino-history.json / kino-history.xml`);
 }
 
-main();
+main().catch((error: unknown) => {
+    console.error('Build failed:', error);
+    process.exitCode = 1;
+});
