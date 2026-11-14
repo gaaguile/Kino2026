@@ -1,8 +1,8 @@
 {
   "name": "kino2026",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Keeps a history of Chilean Kino draws and charts how often each number comes up.",
+  "private": true,
   "scripts": {
     "test": "tsc --noEmit",
     "analyze": "ts-node src/analyze-kino.ts",

@@ -17,13 +17,18 @@ flowchart LR
     workbook[/estadisticas-kino.xlsx/]
     history[(kino-history.json / .xml)]
     chart[/kino-number-distribution.svg/]
+    web([kino.gabrieltekken.com])
 
     subgraph scripts [npm scripts]
         update[update-latest]
         build[build-from-xlsx]
         analyze[analyze]
         verify[verify]
+        publish[publish]
     end
+
+    chart --> publish
+    publish -->|deploy| web
 
     loteria -->|new draws| update
     workbook --> build
@@ -89,33 +94,4 @@ setup, on the machine that runs the scheduled update:
 4. In the Cloudflare dashboard, under **Workers & Pages › kino › Custom
    domains**, add `kino.gabrieltekken.com`.
 
-`.env` is git-ignored and must never be committed. The Docker image does not
-publish the page.
-
-## Docker
-
-The image is a one-shot job, not a web server. It uses Playwright to fetch new
-draws, updates `kino-history.json` and `kino-history.xml` on the host, and
-redraws the chart in `stats`.
-
-Build the image and run an update:
-
-```sh
-docker compose build
-docker compose run --rm kino-update
-```
-
-Run the same command from a host scheduler (such as cron or Windows Task
-Scheduler) to update the history periodically. Compose mounts both history
-files and the `stats` folder from the project directory, so whatever a script
-writes persists between runs.
-
-To run another script in the container, override the command:
-
-```sh
-docker compose run --rm kino-update npm run analyze
-docker compose run --rm kino-update npm run verify
-docker compose run --rm kino-update npm run build-from-xlsx
-```
-
-Rebuild the image after changing anything under `src`.
+`.env` is git-ignored and must never be committed.

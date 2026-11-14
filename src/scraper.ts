@@ -60,7 +60,6 @@ async function scrapeKinoWithPlaywright(): Promise<RawDraw[]> {
     // Launch browser (headless = true means no visible window)
     browser = await chromium.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
 
     const context = await browser.newContext({

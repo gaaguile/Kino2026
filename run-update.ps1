@@ -1,5 +1,9 @@
 Set-Location -Path $PSScriptRoot
 
+# Node writes UTF-8; without this PowerShell garbles characters such as the
+# check mark when it captures the output for the log.
+try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch { }
+
 $logPath = Join-Path $PSScriptRoot 'update-latest.log'
 $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
 $tsNode = Join-Path $PSScriptRoot 'node_modules\.bin\ts-node.cmd'
