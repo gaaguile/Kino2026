@@ -7,6 +7,34 @@ Keeps a history of Chilean Kino draws and charts how often each number comes up.
 - `stats/estadisticas-kino.xlsx` — the workbook the history was first built from.
 - `stats/kino-number-distribution.svg` — the frequency chart.
 
+## Data flow
+
+```mermaid
+%%{init: {'theme': 'neutral'}}%%
+flowchart LR
+    loteria([loteria.cl])
+    lotterytexts([lotterytexts.com])
+    workbook[/estadisticas-kino.xlsx/]
+    history[(kino-history.json / .xml)]
+    chart[/kino-number-distribution.svg/]
+
+    subgraph scripts [npm scripts]
+        update[update-latest]
+        build[build-from-xlsx]
+        analyze[analyze]
+        verify[verify]
+    end
+
+    loteria -->|new draws| update
+    workbook --> build
+    update -->|append| history
+    build -->|overwrite| history
+    history --> analyze
+    analyze --> chart
+    history --> verify
+    lotterytexts -->|compare by date| verify
+```
+
 ## Scripts
 
 | Command | What it does |
