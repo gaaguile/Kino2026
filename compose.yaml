@@ -5,3 +5,4 @@ services:
     volumes:
       - ./kino-history.json:/app/kino-history.json
       - ./kino-history.xml:/app/kino-history.xml
+      - ./stats:/app/stats
