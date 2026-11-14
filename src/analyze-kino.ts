@@ -1,40 +1,31 @@
-import ExcelJS from 'exceljs';
 import * as fs from 'fs';
 import * as path from 'path';
+import { readHistory } from './history';
 
 const NUMBER_COUNT = 25;
 const OUTPUT_PATH = path.join(__dirname, '..', 'stats', 'kino-number-distribution.svg');
 
+// Reads kino-history.json (not the workbook) so the chart includes every draw
+// added by update-latest.
 async function main() {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(path.join(__dirname, '..', 'stats', 'estadisticas-kino.xlsx'));
-
-    const sheet = workbook.getWorksheet('Kino');
-    if (!sheet) throw new Error('Sheet "Kino" not found in estadisticas-kino.xlsx');
-
     const frequencies = Array(NUMBER_COUNT).fill(0) as number[];
     let draws = 0;
     let appearances = 0;
 
-    sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-        if (rowNumber < 8) return;
-        const values = row.values as unknown[];
-        if (typeof values[1] !== 'number') return;
-
-        const numbers = (values.slice(3, 18) as unknown[])
-            .filter((value): value is number => typeof value === 'number');
-        if (numbers.length !== 14 && numbers.length !== 15) return;
-        if (numbers.some((number) => !Number.isInteger(number) || number < 1 || number > NUMBER_COUNT)
+    for (const { drawNumber, numbers } of readHistory()) {
+        // The game drew 15 numbers until ~2005 and 14 afterwards.
+        if ((numbers.length !== 14 && numbers.length !== 15)
+            || numbers.some((number) => !Number.isInteger(number) || number < 1 || number > NUMBER_COUNT)
             || new Set(numbers).size !== numbers.length) {
-            throw new Error(`Invalid number set in workbook row ${rowNumber}`);
+            throw new Error(`Invalid number set in kino-history.json draw #${drawNumber}`);
         }
 
         draws++;
         appearances += numbers.length;
         for (const number of numbers) frequencies[number - 1]++;
-    });
+    }
 
-    if (draws === 0) throw new Error('No valid draws found in the workbook');
+    if (draws === 0) throw new Error('No draws found in kino-history.json');
 
     const expected = appearances / NUMBER_COUNT;
     const chiSquare = frequencies.reduce((sum, observed) => sum + (observed - expected) ** 2 / expected, 0);
