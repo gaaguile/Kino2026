@@ -8,6 +8,7 @@
     "analyze": "ts-node src/analyze-kino.ts",
     "build-from-xlsx": "ts-node src/build-from-xlsx.ts",
     "verify": "ts-node src/scraper.ts",
+    "publish": "ts-node src/publish.ts",
     "update-latest": "ts-node src/update-latest.ts && ts-node src/analyze-kino.ts"
   },
   "repository": {
@@ -27,6 +28,7 @@
   "devDependencies": {
     "@types/node": "^26.3.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "wrangler": "^4.162.0"
   }
 }

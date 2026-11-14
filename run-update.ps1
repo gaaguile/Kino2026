@@ -21,3 +21,17 @@ if ($LASTEXITCODE -ne 0) {
     "[$timestamp] ERROR: analyze-kino.ts exited with code $LASTEXITCODE" | Add-Content -Path $logPath -Encoding utf8
     exit $LASTEXITCODE
 }
+
+# Publish the chart to Cloudflare Pages. Skipped until .env holds the credentials.
+if (-not (Test-Path (Join-Path $PSScriptRoot '.env'))) {
+    "[$timestamp] No .env file; chart not published." | Add-Content -Path $logPath -Encoding utf8
+    exit 0
+}
+
+$output = & $tsNode src/publish.ts 2>&1 | Out-String
+$output | Add-Content -Path $logPath -Encoding utf8
+
+if ($LASTEXITCODE -ne 0) {
+    "[$timestamp] ERROR: publish.ts exited with code $LASTEXITCODE" | Add-Content -Path $logPath -Encoding utf8
+    exit $LASTEXITCODE
+}

@@ -43,6 +43,7 @@ flowchart LR
 | `npm run analyze` | Regenerates the frequency chart from `kino-history.json`. |
 | `npm run verify` | Compares the history with lotterytexts.com by date. Read-only. |
 | `npm run build-from-xlsx` | Rebuilds the whole history from the workbook. |
+| `npm run publish` | Builds the web page and deploys it to Cloudflare Pages if the chart changed (`-- --force` deploys anyway, `-- --build-only` only builds `dist/site`). |
 | `npm test` | Type-checks the project. |
 
 `update-latest` recovers skipped runs on its own, but only as far back as the
@@ -61,10 +62,35 @@ npx playwright install chromium
 npm run update-latest
 ```
 
-On Windows, `run-update.ps1` runs the update, redraws the chart and appends the
-output to `update-latest.log`. To schedule it, run `register-update-task.ps1` once from an
+On Windows, `run-update.ps1` runs the update, redraws the chart, publishes the
+web page (once `.env` exists, see below) and appends the output to
+`update-latest.log`. To schedule it, run `register-update-task.ps1` once from an
 elevated PowerShell: it registers a task that runs the update on Monday,
 Thursday and Saturday at 10:00, whether or not anyone is logged on.
+
+## Web page
+
+`npm run publish` puts the chart on a Cloudflare Pages site
+(<https://kino.gabrieltekken.com>). It builds `dist/site` from
+`site/index.html` with the chart inlined, and uploads it with wrangler. One-time
+setup, on the machine that runs the scheduled update:
+
+1. Copy `.env.example` to `.env` and fill in `CLOUDFLARE_API_TOKEN` and
+   `CLOUDFLARE_ACCOUNT_ID`. The token needs **Account › Cloudflare Pages ›
+   Edit**; the one used by another Pages project on the same account works.
+2. Create the Pages project once:
+
+   ```sh
+   npx wrangler pages project create kino --production-branch main
+   ```
+
+3. Run `npm run publish`. It prints `Site deployed.` and the page is live at the
+   `pages.dev` address wrangler shows.
+4. In the Cloudflare dashboard, under **Workers & Pages › kino › Custom
+   domains**, add `kino.gabrieltekken.com`.
+
+`.env` is git-ignored and must never be committed. The Docker image does not
+publish the page.
 
 ## Docker
 
