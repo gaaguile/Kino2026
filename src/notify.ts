@@ -80,6 +80,57 @@ function textFor(reports: DrawReport[]): string {
     ].join('\n\n');
 }
 
+// Discord message in the GT Terminal style: amber accent bar, uppercase labels,
+// monospace table, green / red only for meaning and always with an arrow.
+// Discord has no custom fonts or CSS; an "ansi" code block is the one place
+// text colour works.
+const ESC = '\u001b';
+const ansi = {
+    reset: `${ESC}[0m`,
+    label: `${ESC}[0;30m`,
+    amber: `${ESC}[1;33m`,
+    up: `${ESC}[0;32m`,
+    down: `${ESC}[0;31m`,
+    text: `${ESC}[0;37m`,
+};
+const AMBER = 0xffa028;
+const EMBED_LIMIT = 10;
+
+function discordPayload(reports: DrawReport[]) {
+    const chance = (GROUP_SIZE * GROUP_SIZE) / NUMBER_COUNT;
+    const pad = (numbers: number[]) => (numbers.length > 0 ? numbers.map((n) => String(n).padStart(2, '0')).join(' ') : '--');
+    const row = (label: string, matches: number) => {
+        const delta = matches - chance;
+        const colour = delta >= 0 ? ansi.up : ansi.down;
+        const marker = delta >= 0 ? '▲' : '▼';
+        return `${ansi.text}${label.padEnd(10)}${String(matches).padStart(7)}   ${colour}${marker} ${delta >= 0 ? '+' : '-'}${Math.abs(delta).toFixed(1)}${ansi.reset}`;
+    };
+
+    const embeds = reports.slice(-EMBED_LIMIT).map(({ draw, mostMatches, leastMatches }) => ({
+        color: AMBER,
+        author: { name: 'GT TERMINAL │ KINO SCREENER' },
+        title: `DRAW #${draw.drawNumber} · ${draw.date.toUpperCase()}`,
+        url: PAGE_URL,
+        description: [
+            '```ansi',
+            `${ansi.amber}NUMBERS${ansi.reset}  ${ansi.text}${pad(draw.numbers)}${ansi.reset}`,
+            '',
+            `${ansi.label}${'GROUP'.padEnd(10)}${'MATCHES'.padStart(7)}   VS EXP${ansi.reset}`,
+            row(`${GROUP_SIZE} MOST`, mostMatches.length),
+            row(`${GROUP_SIZE} LEAST`, leastMatches.length),
+            '',
+            `${ansi.label}MOST MATCHED  ${ansi.text}${pad(mostMatches)}${ansi.reset}`,
+            `${ansi.label}LEAST MATCHED ${ansi.text}${pad(leastMatches)}${ansi.reset}`,
+            '```',
+        ].join('\n'),
+        footer: { text: `VS EXP: matches against ${chance.toFixed(1)} by chance · groups ranked before this draw` },
+    }));
+
+    const payload: { username: string; avatar_url?: string; embeds: typeof embeds } = { username: 'GT TERMINAL', embeds };
+    if (process.env.DISCORD_AVATAR_URL) payload.avatar_url = process.env.DISCORD_AVATAR_URL;
+    return payload;
+}
+
 function readLastNotified(): number | null {
     if (!fs.existsSync(STATE_PATH)) return null;
     const value = Number(fs.readFileSync(STATE_PATH, 'utf8').trim());
@@ -118,35 +169,50 @@ async function main() {
     const reports = draws.sort((a, b) => a.drawNumber - b.drawNumber).map((draw) => reportFor(draw, history));
     const subject = subjectFor(reports);
     const text = textFor(reports);
+    const discord = discordPayload(reports);
 
     if (preview) {
-        console.log(`Subject: ${subject}\n\n${text}`);
+        console.log(`Subject: ${subject}\n\n${text}\n\n--- Discord message (webhook JSON) ---\n${JSON.stringify(discord, null, 2)}`);
+        console.log(`\n--- Discord message (ANSI block, as Discord renders it) ---\n${discord.embeds[0].description}`);
         return;
     }
 
     const user = process.env.GMAIL_USER;
     const password = process.env.GMAIL_APP_PASSWORD;
-    if (!user || !password) {
-        console.log('GMAIL_USER / GMAIL_APP_PASSWORD not set (see .env.example); email not sent.');
+    const webhook = process.env.DISCORD_WEBHOOK_URL;
+    const emailOn = Boolean(user && password);
+    if (!emailOn && !webhook) {
+        console.log('Neither GMAIL_USER / GMAIL_APP_PASSWORD nor DISCORD_WEBHOOK_URL is set (see .env.example); nothing sent.');
         return;
     }
 
-    // Sends through Gmail with an app password (Google account › Security › App passwords).
-    const transport = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: { user, pass: password },
-    });
-    const to = process.env.NOTIFY_TO || user;
-    await transport.sendMail({ from: `Kino2026 <${user}>`, to, subject, text });
+    const through = reports[reports.length - 1].draw.drawNumber;
+    if (emailOn) {
+        // Sends through Gmail with an app password (Google account › Security › App passwords).
+        const transport = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
+            auth: { user, pass: password },
+        });
+        await transport.sendMail({ from: `Kino2026 <${user}>`, to: process.env.NOTIFY_TO || user, subject, text });
+        console.log(`Email sent for ${reports.length} draw(s), through #${through}.`);
+    }
+    if (webhook) {
+        const response = await fetch(webhook, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(discord),
+        });
+        if (!response.ok) throw new Error(`Discord webhook answered ${response.status}: ${await response.text()}`);
+        console.log(`Discord message sent for ${reports.length} draw(s), through #${through}.`);
+    }
 
-    // Recorded only after a successful send, so a failed one is retried next time.
+    // Recorded only after every configured channel succeeded, so a failed run is retried next time.
     if (drawFlag < 0) {
         fs.mkdirSync(path.dirname(STATE_PATH), { recursive: true });
         fs.writeFileSync(STATE_PATH, String(latest.drawNumber), 'utf8');
     }
-    console.log(`Email sent for ${reports.length} draw(s), through #${reports[reports.length - 1].draw.drawNumber}.`);
 }
 
 main().catch((error: unknown) => {

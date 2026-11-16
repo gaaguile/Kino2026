@@ -10,6 +10,7 @@
     "verify": "ts-node src/scraper.ts",
     "publish": "ts-node src/publish.ts",
     "notify": "ts-node src/notify.ts",
+    "backtest": "ts-node src/backtest.ts",
     "update-latest": "ts-node src/update-latest.ts && ts-node src/analyze-kino.ts"
   },
   "repository": {

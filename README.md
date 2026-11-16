@@ -52,7 +52,8 @@ flowchart LR
 | `npm run verify` | Compares the history with lotterytexts.com by date. Read-only. |
 | `npm run build-from-xlsx` | Rebuilds the whole history from the workbook. |
 | `npm run publish` | Builds the web page and deploys it to Cloudflare Pages if the chart changed (`-- --force` deploys anyway, `-- --build-only` only builds `dist/site`). |
-| `npm run notify` | Emails how many numbers of each new draw were among the 14 most and 14 least frequent (`-- --preview` prints the email instead, `-- --draw N` reports on draw N). |
+| `npm run notify` | Emails (and posts to Discord) how many numbers of each new draw were among the 14 most and 14 least frequent (`-- --preview` prints the email instead, `-- --draw N` reports on draw N). |
+| `npm run backtest` | One-time back analysis: for every draw from #1, the matches with the 14 most and 14 least frequent numbers before it. Writes `stats/kino-backtest.json` and `.svg`. |
 | `npm test` | Type-checks the project. |
 
 `update-latest` recovers skipped runs on its own, but only as far back as the
@@ -100,7 +101,7 @@ setup, on the machine that runs the scheduled update:
 
 `.env` is git-ignored and must never be committed.
 
-## Email
+## Email and Discord
 
 After each new draw, `npm run notify` emails how many of the drawn numbers were
 among the 14 most frequent and the 14 least frequent. Both groups are ranked on
@@ -118,3 +119,17 @@ The first run emails the latest draw. To see the email without sending it:
 ```sh
 npm run notify -- --preview
 ```
+
+### Discord
+
+If `.env` has `DISCORD_WEBHOOK_URL`, the same report is also posted to that
+channel, styled like the GT Terminal server kit: an amber accent bar, uppercase
+labels, a monospace table, and green / red (with an arrow) for matches above or
+below what chance gives. Create the webhook under **Server Settings ›
+Integrations › Webhooks**. `DISCORD_AVATAR_URL` optionally sets the picture
+shown next to the name. The server icon and banner themselves are uploaded by
+hand under **Server Settings › Overview**; a script cannot set them.
+
+The email and the Discord message are each sent only if their values are in
+`.env`. A run is recorded as done only after every configured channel
+succeeded, so a failed one is retried (and the other channel may repeat).
