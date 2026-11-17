@@ -6,10 +6,9 @@ import { readHistory } from './history';
 // One-time back analysis: for every draw from #1 on, how many of its numbers
 // were among the 14 most and the 14 least frequent numbers *before* that draw
 // (ranked on all earlier draws, ties to the lower number, as in notify).
-// Writes to stats/: kino-backtest.json, kino-backtest.svg (trend panels plus
-// the distribution of matches), kino-backtest-distribution.svg (that
-// distribution on its own) and a PNG of each chart, since Discord does not
-// preview SVG files.
+// Writes to stats/: kino-backtest.json, kino-backtest.svg (matches over time),
+// kino-backtest-distribution.svg (how many draws had each number of matches)
+// and a PNG of each chart, since Discord does not preview SVG files.
 
 const NUMBER_COUNT = 25;
 const GROUP_SIZE = 14;
@@ -235,7 +234,7 @@ function distributionChart(dist: Distribution): string {
     </svg>`;
 }
 
-function chart(rows: Row[], summary: ReturnType<typeof buildSummary>, dist: Distribution): string {
+function chart(rows: Row[], summary: ReturnType<typeof buildSummary>): string {
     const width = 1100;
     const margin = 48;
     const right = width - margin;
@@ -247,8 +246,7 @@ function chart(rows: Row[], summary: ReturnType<typeof buildSummary>, dist: Dist
     const panelHeight = 230;
     const top1 = 170;
     const top2 = top1 + panelHeight + 90;
-    const top3 = top2 + panelHeight + 90;
-    const legendY = top3 + panelHeight + 80;
+    const legendY = top2 + panelHeight + 64;
     const height = legendY + 90;
 
     const path = (values: number[], offset: number, y: (value: number) => number) =>
@@ -318,9 +316,6 @@ function chart(rows: Row[], summary: ReturnType<typeof buildSummary>, dist: Dist
     <path d="${path(cumMost, 0, y2)}" class="series most" />
     ${xAxis(top2 + panelHeight)}
 
-    <text x="${margin}" y="${top3 - 22}" class="panel">Draws by number of matches (${formatCount(dist.draws)} draws of 14 numbers)</text>
-    ${distributionPanel(dist, top3, panelHeight, margin, left, right)}
-
     <rect x="${margin}" y="${legendY - 9}" width="10" height="10" class="accent" />
     <text x="${margin + 18}" y="${legendY}" class="note">${line('14 most frequent', summary.mostFrequent)}</text>
     <rect x="${margin}" y="${legendY + 17}" width="10" height="10" class="info" />
@@ -363,7 +358,7 @@ async function main() {
     const dist = distribution(rows);
     const draws = rows.map(({ variance, ...row }) => row);
     fs.writeFileSync(JSON_OUT, JSON.stringify({ summary, distribution: dist, draws }), 'utf8');
-    fs.writeFileSync(SVG_OUT, chart(rows, summary, dist), 'utf8');
+    fs.writeFileSync(SVG_OUT, chart(rows, summary), 'utf8');
     fs.writeFileSync(DIST_SVG_OUT, distributionChart(dist), 'utf8');
     const pngs = [await renderPng(SVG_OUT), await renderPng(DIST_SVG_OUT)];
 
