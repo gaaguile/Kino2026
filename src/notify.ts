@@ -93,13 +93,12 @@ const ansi = {
     down: `${ESC}[0;31m`,
     text: `${ESC}[0;37m`,
 };
-// Charts from `npm run backtest` sent with every Discord message: the PNGs
-// show inline, the SVGs are the originals to download. Missing files are skipped.
+// Charts from `npm run backtest` sent with every Discord message, shown as
+// images under the draw report (Discord cannot display SVG files, so only the
+// PNGs go). Missing files are skipped.
 const ATTACHMENT_NAMES = [
     'kino-backtest.png',
     'kino-backtest-distribution.png',
-    'kino-backtest.svg',
-    'kino-backtest-distribution.svg',
 ];
 function attachments(): string[] {
     return ATTACHMENT_NAMES.map((name) => path.join(ROOT, 'stats', name)).filter((file) => fs.existsSync(file));
@@ -108,7 +107,7 @@ function attachments(): string[] {
 const AMBER = 0xffa028;
 const EMBED_LIMIT = 10;
 
-function discordPayload(reports: DrawReport[]) {
+function discordPayload(reports: DrawReport[], imageNames: string[]) {
     const chance = (GROUP_SIZE * GROUP_SIZE) / NUMBER_COUNT;
     const pad = (numbers: number[]) => (numbers.length > 0 ? numbers.map((n) => String(n).padStart(2, '0')).join(' ') : '--');
     const row = (label: string, matches: number) => {
@@ -118,7 +117,7 @@ function discordPayload(reports: DrawReport[]) {
         return `${ansi.text}${label.padEnd(10)}${String(matches).padStart(7)}   ${colour}${marker} ${delta >= 0 ? '+' : '-'}${Math.abs(delta).toFixed(1)}${ansi.reset}`;
     };
 
-    const embeds = reports.slice(-EMBED_LIMIT).map(({ draw, mostMatches, leastMatches }) => ({
+    const drawEmbeds = reports.slice(-(EMBED_LIMIT - imageNames.length)).map(({ draw, mostMatches, leastMatches }) => ({
         color: AMBER,
         author: { name: 'GT TERMINAL │ KINO SCREENER' },
         title: `DRAW #${draw.drawNumber} · ${draw.date.toUpperCase()}`,
@@ -138,7 +137,12 @@ function discordPayload(reports: DrawReport[]) {
         footer: { text: `VS EXP: matches against ${chance.toFixed(1)} by chance · groups ranked before this draw` },
     }));
 
-    const payload: { username: string; avatar_url?: string; embeds: typeof embeds } = { username: 'GT TERMINAL', embeds };
+    // Each chart is an embed of its own so Discord shows it full width instead of a cropped gallery.
+    const imageEmbeds = imageNames.map((name) => ({ color: AMBER, image: { url: `attachment://${name}` } }));
+    const payload: { username: string; avatar_url?: string; embeds: object[] } = {
+        username: 'GT TERMINAL',
+        embeds: [...drawEmbeds, ...imageEmbeds],
+    };
     if (process.env.DISCORD_AVATAR_URL) payload.avatar_url = process.env.DISCORD_AVATAR_URL;
     return payload;
 }
@@ -181,12 +185,13 @@ async function main() {
     const reports = draws.sort((a, b) => a.drawNumber - b.drawNumber).map((draw) => reportFor(draw, history));
     const subject = subjectFor(reports);
     const text = textFor(reports);
-    const discord = discordPayload(reports);
+    const files = attachments();
+    const discord = discordPayload(reports, files.map((file) => path.basename(file)));
 
     if (preview) {
         console.log(`Subject: ${subject}\n\n${text}\n\n--- Discord message (webhook JSON) ---\n${JSON.stringify(discord, null, 2)}`);
-        console.log(`\n--- Discord message (ANSI block, as Discord renders it) ---\n${discord.embeds[0].description}`);
-        console.log(`\nDiscord attachments: ${attachments().map((file) => path.basename(file)).join(', ') || 'none'}`);
+        console.log(`\n--- Discord message (ANSI block, as Discord renders it) ---\n${(discord.embeds[0] as { description: string }).description}`);
+        console.log(`\nDiscord attachments: ${files.map((file) => path.basename(file)).join(', ') || 'none'}`);
         return;
     }
 
@@ -215,9 +220,8 @@ async function main() {
         // Sent as multipart so the back-analysis charts travel with the message.
         const body = new FormData();
         body.append('payload_json', JSON.stringify(discord));
-        attachments().forEach((file, index) => {
-            const type = file.endsWith('.png') ? 'image/png' : 'image/svg+xml';
-            body.append(`files[${index}]`, new Blob([fs.readFileSync(file)], { type }), path.basename(file));
+        files.forEach((file, index) => {
+            body.append(`files[${index}]`, new Blob([fs.readFileSync(file)], { type: 'image/png' }), path.basename(file));
         });
         const response = await fetch(webhook, { method: 'POST', body });
         if (!response.ok) throw new Error(`Discord webhook answered ${response.status}: ${await response.text()}`);

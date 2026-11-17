@@ -130,7 +130,7 @@ Integrations › Webhooks**. `DISCORD_AVATAR_URL` optionally sets the picture
 shown next to the name. The server icon and banner themselves are uploaded by
 hand under **Server Settings › Overview**; a script cannot set them.
 
-Every Discord message also carries the back-analysis charts from `stats/`: the two PNGs show inline and the two SVGs are attached to download. Regenerate them with `npm run backtest`; files that do not exist are skipped.
+Every Discord message also carries the back-analysis charts from `stats/`: the two PNGs show full width under the report (SVG files are not sent, since Discord shows them as code). Regenerate them with `npm run backtest`; files that do not exist are skipped.
 
 The email and the Discord message are each sent only if their values are in
 `.env`. A run is recorded as done only after every configured channel
