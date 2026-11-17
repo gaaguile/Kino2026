@@ -53,7 +53,7 @@ flowchart LR
 | `npm run build-from-xlsx` | Rebuilds the whole history from the workbook. |
 | `npm run publish` | Builds the web page and deploys it to Cloudflare Pages if the chart changed (`-- --force` deploys anyway, `-- --build-only` only builds `dist/site`). |
 | `npm run notify` | Emails (and posts to Discord) how many numbers of each new draw were among the 14 most and 14 least frequent (`-- --preview` prints the email instead, `-- --draw N` reports on draw N). |
-| `npm run backtest` | One-time back analysis: for every draw from #1, the matches with the 14 most and 14 least frequent numbers before it. Writes `stats/kino-backtest.json` and `.svg`. |
+| `npm run backtest` | One-time back analysis: for every draw from #1, the matches with the 14 most and 14 least frequent numbers before it, and how many draws had each match count against chance. Writes `stats/kino-backtest.json`, two charts (`kino-backtest.svg`, `kino-backtest-distribution.svg`) and a PNG of each. Needs the Playwright browser, like `update-latest`. |
 | `npm test` | Type-checks the project. |
 
 `update-latest` recovers skipped runs on its own, but only as far back as the
@@ -129,6 +129,8 @@ below what chance gives. Create the webhook under **Server Settings ›
 Integrations › Webhooks**. `DISCORD_AVATAR_URL` optionally sets the picture
 shown next to the name. The server icon and banner themselves are uploaded by
 hand under **Server Settings › Overview**; a script cannot set them.
+
+Every Discord message also carries the back-analysis charts from `stats/`: the two PNGs show inline and the two SVGs are attached to download. Regenerate them with `npm run backtest`; files that do not exist are skipped.
 
 The email and the Discord message are each sent only if their values are in
 `.env`. A run is recorded as done only after every configured channel

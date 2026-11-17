@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="632" viewBox="0 0 1100 632">
+    <style>
+        text { fill: #f2f3f5; font-family: 'Helvetica Neue', Helvetica, Arial, 'Segoe UI', sans-serif; font-variant-numeric: tabular-nums; }
+        .title { font-size: 30px; font-weight: 700; letter-spacing: -0.3px; }
+        .subtitle { font-size: 15px; fill: #9ba1a9; }
+        .panel { font-size: 14px; font-weight: 700; }
+        .tick { font-size: 12px; fill: #9ba1a9; }
+        .note { font-size: 13px; fill: #9ba1a9; }
+        .author { font-size: 12px; fill: #9ba1a9; letter-spacing: 0.6px; }
+        .footer { font-size: 12px; fill: #6b7078; }
+        .grid { stroke: #23272e; stroke-width: 1; }
+        .zero { stroke: #6b7078; stroke-width: 1; }
+        .series { fill: none; stroke-width: 2; stroke-linejoin: round; }
+        .most { stroke: #fb8b1e; }
+        .least { stroke: #5cc8ff; }
+        .bar-most { fill: #fb8b1e; }
+        .bar-least { fill: #5cc8ff; }
+        .chance { fill: none; stroke: #f2f3f5; stroke-width: 1.5; stroke-dasharray: 6 5; }
+        .chance-dot { fill: #f2f3f5; stroke: #0b0d10; stroke-width: 2; }
+        .accent { fill: #fb8b1e; }
+        .info { fill: #5cc8ff; }
+    </style>
+    <rect width="100%" height="100%" fill="#0b0d10" />
+    <rect x="48" y="34" width="44" height="6" class="accent" />
+    <text x="1052" y="42" class="author" text-anchor="end">Gabriel Tekken</text>
+    <text x="48" y="78" class="title">Matches per draw against chance</text>
+    <text x="48" y="104" class="subtitle">Draws with each number of matches with the 14 most and 14 least frequent numbers before them (2,507 draws of 14 numbers)</text>
+    <text x="48" y="148" class="panel">Number of draws</text>
+    
+    <line x1="48" y1="470.0" x2="1052" y2="470.0" class="zero" />
+    <text x="48" y="464.0" class="tick">0</text>
+    <line x1="48" y1="410.0" x2="1052" y2="410.0" class="grid" />
+    <text x="48" y="404.0" class="tick">200</text>
+    <line x1="48" y1="350.0" x2="1052" y2="350.0" class="grid" />
+    <text x="48" y="344.0" class="tick">400</text>
+    <line x1="48" y1="290.0" x2="1052" y2="290.0" class="grid" />
+    <text x="48" y="284.0" class="tick">600</text>
+    <line x1="48" y1="230.0" x2="1052" y2="230.0" class="grid" />
+    <text x="48" y="224.0" class="tick">800</text>
+    <line x1="48" y1="170.0" x2="1052" y2="170.0" class="grid" />
+    <text x="48" y="164.0" class="tick">1,000</text>
+    <path d="M120.0,470 V470.0 Q120.0,469.7 120.3,469.7 H141.7 Q142.0,469.7 142.0,470.0 V470 Z" class="bar-most"><title>3 matches, 14 most frequent: 1 draws</title></path><text x="143.5" y="490" class="tick" text-anchor="middle">3</text>
+    <path d="M199.0,470 V470.0 Q199.0,468.5 200.5,468.5 H219.5 Q221.0,468.5 221.0,470.0 V470 Z" class="bar-most"><title>4 matches, 14 most frequent: 5 draws</title></path><path d="M224.0,470 V469.1 Q224.0,466.1 227.0,466.1 H243.0 Q246.0,466.1 246.0,469.1 V470 Z" class="bar-least"><title>4 matches, 14 least frequent: 13 draws</title></path><text x="222.5" y="490" class="tick" text-anchor="middle">4</text>
+    <path d="M278.0,470 V450.5 Q278.0,447.5 281.0,447.5 H297.0 Q300.0,447.5 300.0,450.5 V470 Z" class="bar-most"><title>5 matches, 14 most frequent: 75 draws</title></path><path d="M303.0,470 V453.2 Q303.0,450.2 306.0,450.2 H322.0 Q325.0,450.2 325.0,453.2 V470 Z" class="bar-least"><title>5 matches, 14 least frequent: 66 draws</title></path><text x="301.5" y="490" class="tick" text-anchor="middle">5</text>
+    <path d="M357.0,470 V394.4 Q357.0,391.4 360.0,391.4 H376.0 Q379.0,391.4 379.0,394.4 V470 Z" class="bar-most"><title>6 matches, 14 most frequent: 262 draws</title></path><path d="M382.0,470 V388.7 Q382.0,385.7 385.0,385.7 H401.0 Q404.0,385.7 404.0,388.7 V470 Z" class="bar-least"><title>6 matches, 14 least frequent: 281 draws</title></path><text x="380.5" y="490" class="tick" text-anchor="middle">6</text>
+    <path d="M436.0,470 V293.6 Q436.0,290.6 439.0,290.6 H455.0 Q458.0,290.6 458.0,293.6 V470 Z" class="bar-most"><title>7 matches, 14 most frequent: 598 draws</title></path><path d="M461.0,470 V281.0 Q461.0,278.0 464.0,278.0 H480.0 Q483.0,278.0 483.0,281.0 V470 Z" class="bar-least"><title>7 matches, 14 least frequent: 640 draws</title></path><text x="459.5" y="490" class="tick" text-anchor="middle">7</text>
+    <path d="M515.0,470 V230.6 Q515.0,227.6 518.0,227.6 H534.0 Q537.0,227.6 537.0,230.6 V470 Z" class="bar-most"><title>8 matches, 14 most frequent: 808 draws</title></path><path d="M540.0,470 V244.1 Q540.0,241.1 543.0,241.1 H559.0 Q562.0,241.1 562.0,244.1 V470 Z" class="bar-least"><title>8 matches, 14 least frequent: 763 draws</title></path><text x="538.5" y="490" class="tick" text-anchor="middle">8</text>
+    <path d="M594.0,470 V322.1 Q594.0,319.1 597.0,319.1 H613.0 Q616.0,319.1 616.0,322.1 V470 Z" class="bar-most"><title>9 matches, 14 most frequent: 503 draws</title></path><path d="M619.0,470 V320.9 Q619.0,317.9 622.0,317.9 H638.0 Q641.0,317.9 641.0,320.9 V470 Z" class="bar-least"><title>9 matches, 14 least frequent: 507 draws</title></path><text x="617.5" y="490" class="tick" text-anchor="middle">9</text>
+    <path d="M673.0,470 V409.1 Q673.0,406.1 676.0,406.1 H692.0 Q695.0,406.1 695.0,409.1 V470 Z" class="bar-most"><title>10 matches, 14 most frequent: 213 draws</title></path><path d="M698.0,470 V415.7 Q698.0,412.7 701.0,412.7 H717.0 Q720.0,412.7 720.0,415.7 V470 Z" class="bar-least"><title>10 matches, 14 least frequent: 191 draws</title></path><text x="696.5" y="490" class="tick" text-anchor="middle">10</text>
+    <path d="M752.0,470 V462.2 Q752.0,459.2 755.0,459.2 H771.0 Q774.0,459.2 774.0,462.2 V470 Z" class="bar-most"><title>11 matches, 14 most frequent: 36 draws</title></path><path d="M777.0,470 V459.5 Q777.0,456.5 780.0,456.5 H796.0 Q799.0,456.5 799.0,459.5 V470 Z" class="bar-least"><title>11 matches, 14 least frequent: 45 draws</title></path><text x="775.5" y="490" class="tick" text-anchor="middle">11</text>
+    <path d="M831.0,470 V470.0 Q831.0,468.2 832.8,468.2 H851.2 Q853.0,468.2 853.0,470.0 V470 Z" class="bar-most"><title>12 matches, 14 most frequent: 6 draws</title></path><path d="M856.0,470 V470.0 Q856.0,469.7 856.3,469.7 H877.7 Q878.0,469.7 878.0,470.0 V470 Z" class="bar-least"><title>12 matches, 14 least frequent: 1 draws</title></path><text x="854.5" y="490" class="tick" text-anchor="middle">12</text>
+    <text x="933.5" y="490" class="tick" text-anchor="middle">13</text>
+    <text x="1012.5" y="490" class="tick" text-anchor="middle">14</text>
+    <path d="M143.5,469.9 L222.5,468.1 L301.5,451.4 L380.5,386.4 L459.5,278.9 L538.5,235.9 L617.5,313.9 L696.5,414.3 L775.5,459.9 L854.5,469.2 L933.5,470.0 L1012.5,470.0" class="chance" />
+    <circle cx="143.5" cy="469.9" r="4" class="chance-dot"><title>3 matches by chance: 0.2 draws</title></circle><circle cx="222.5" cy="468.1" r="4" class="chance-dot"><title>4 matches by chance: 6.2 draws</title></circle><circle cx="301.5" cy="451.4" r="4" class="chance-dot"><title>5 matches by chance: 61.9 draws</title></circle><circle cx="380.5" cy="386.4" r="4" class="chance-dot"><title>6 matches by chance: 278.7 draws</title></circle><circle cx="459.5" cy="278.9" r="4" class="chance-dot"><title>7 matches by chance: 637.0 draws</title></circle><circle cx="538.5" cy="235.9" r="4" class="chance-dot"><title>8 matches by chance: 780.3 draws</title></circle><circle cx="617.5" cy="313.9" r="4" class="chance-dot"><title>9 matches by chance: 520.2 draws</title></circle><circle cx="696.5" cy="414.3" r="4" class="chance-dot"><title>10 matches by chance: 185.8 draws</title></circle><circle cx="775.5" cy="459.9" r="4" class="chance-dot"><title>11 matches by chance: 33.8 draws</title></circle><circle cx="854.5" cy="469.2" r="4" class="chance-dot"><title>12 matches by chance: 2.8 draws</title></circle><circle cx="933.5" cy="470.0" r="4" class="chance-dot"><title>13 matches by chance: 0.1 draws</title></circle><circle cx="1012.5" cy="470.0" r="4" class="chance-dot"><title>14 matches by chance: 0.0 draws</title></circle>
+    <text x="1052" y="512" class="note" text-anchor="end">Matches in the draw</text>
+    <rect x="48" y="545" width="10" height="10" class="accent" />
+    <text x="66" y="554" class="note">14 most frequent</text>
+    <rect x="198" y="545" width="10" height="10" class="info" />
+    <text x="216" y="554" class="note">14 least frequent</text>
+    <line x1="358" y1="550" x2="388" y2="550" class="chance" />
+    <text x="398" y="554" class="note">Expected by chance</text>
+    <text x="48" y="590" class="footer">Groups are ranked on all draws before each draw; ties go to the lower number. Draws of the early years, with 15 numbers, are left out because chance differs for them.</text>
+    </svg>

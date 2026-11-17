@@ -93,6 +93,18 @@ const ansi = {
     down: `${ESC}[0;31m`,
     text: `${ESC}[0;37m`,
 };
+// Charts from `npm run backtest` sent with every Discord message: the PNGs
+// show inline, the SVGs are the originals to download. Missing files are skipped.
+const ATTACHMENT_NAMES = [
+    'kino-backtest.png',
+    'kino-backtest-distribution.png',
+    'kino-backtest.svg',
+    'kino-backtest-distribution.svg',
+];
+function attachments(): string[] {
+    return ATTACHMENT_NAMES.map((name) => path.join(ROOT, 'stats', name)).filter((file) => fs.existsSync(file));
+}
+
 const AMBER = 0xffa028;
 const EMBED_LIMIT = 10;
 
@@ -174,6 +186,7 @@ async function main() {
     if (preview) {
         console.log(`Subject: ${subject}\n\n${text}\n\n--- Discord message (webhook JSON) ---\n${JSON.stringify(discord, null, 2)}`);
         console.log(`\n--- Discord message (ANSI block, as Discord renders it) ---\n${discord.embeds[0].description}`);
+        console.log(`\nDiscord attachments: ${attachments().map((file) => path.basename(file)).join(', ') || 'none'}`);
         return;
     }
 
@@ -199,11 +212,14 @@ async function main() {
         console.log(`Email sent for ${reports.length} draw(s), through #${through}.`);
     }
     if (webhook) {
-        const response = await fetch(webhook, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(discord),
+        // Sent as multipart so the back-analysis charts travel with the message.
+        const body = new FormData();
+        body.append('payload_json', JSON.stringify(discord));
+        attachments().forEach((file, index) => {
+            const type = file.endsWith('.png') ? 'image/png' : 'image/svg+xml';
+            body.append(`files[${index}]`, new Blob([fs.readFileSync(file)], { type }), path.basename(file));
         });
+        const response = await fetch(webhook, { method: 'POST', body });
         if (!response.ok) throw new Error(`Discord webhook answered ${response.status}: ${await response.text()}`);
         console.log(`Discord message sent for ${reports.length} draw(s), through #${through}.`);
     }

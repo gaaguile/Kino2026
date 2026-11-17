@@ -1,18 +1,28 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { chromium } from 'playwright';
 import { readHistory } from './history';
 
 // One-time back analysis: for every draw from #1 on, how many of its numbers
 // were among the 14 most and the 14 least frequent numbers *before* that draw
 // (ranked on all earlier draws, ties to the lower number, as in notify).
-// Writes stats/kino-backtest.json and stats/kino-backtest.svg.
+// Writes to stats/: kino-backtest.json, kino-backtest.svg (trend panels plus
+// the distribution of matches), kino-backtest-distribution.svg (that
+// distribution on its own) and a PNG of each chart, since Discord does not
+// preview SVG files.
 
 const NUMBER_COUNT = 25;
 const GROUP_SIZE = 14;
 const FIRST_DRAW = 1;
 const WINDOW = 100;
-const JSON_OUT = path.join(__dirname, '..', 'stats', 'kino-backtest.json');
-const SVG_OUT = path.join(__dirname, '..', 'stats', 'kino-backtest.svg');
+// Match counts shown in the distribution panel.
+const DIST_FROM = 3;
+const DIST_TO = 14;
+const STATS_DIR = path.join(__dirname, '..', 'stats');
+const JSON_OUT = path.join(STATS_DIR, 'kino-backtest.json');
+const SVG_OUT = path.join(STATS_DIR, 'kino-backtest.svg');
+const DIST_SVG_OUT = path.join(STATS_DIR, 'kino-backtest-distribution.svg');
+const PNG_SCALE = 2;
 const AUTHOR = 'Gabriel Tekken';
 
 const THEME = {
@@ -95,7 +105,137 @@ function rolling(values: number[], window: number): number[] {
     return out;
 }
 
-function chart(rows: Row[], summary: ReturnType<typeof buildSummary>): string {
+const CSS = `
+        text { fill: ${THEME.ink}; font-family: 'Helvetica Neue', Helvetica, Arial, 'Segoe UI', sans-serif; font-variant-numeric: tabular-nums; }
+        .title { font-size: 30px; font-weight: 700; letter-spacing: -0.3px; }
+        .subtitle { font-size: 15px; fill: ${THEME.secondary}; }
+        .panel { font-size: 14px; font-weight: 700; }
+        .tick { font-size: 12px; fill: ${THEME.secondary}; }
+        .note { font-size: 13px; fill: ${THEME.secondary}; }
+        .author { font-size: 12px; fill: ${THEME.secondary}; letter-spacing: 0.6px; }
+        .footer { font-size: 12px; fill: ${THEME.muted}; }
+        .grid { stroke: ${THEME.rule}; stroke-width: 1; }
+        .zero { stroke: ${THEME.muted}; stroke-width: 1; }
+        .series { fill: none; stroke-width: 2; stroke-linejoin: round; }
+        .most { stroke: ${THEME.accent}; }
+        .least { stroke: ${THEME.info}; }
+        .bar-most { fill: ${THEME.accent}; }
+        .bar-least { fill: ${THEME.info}; }
+        .chance { fill: none; stroke: ${THEME.ink}; stroke-width: 1.5; stroke-dasharray: 6 5; }
+        .chance-dot { fill: ${THEME.ink}; stroke: ${THEME.surface}; stroke-width: 2; }
+        .accent { fill: ${THEME.accent}; }
+        .info { fill: ${THEME.info}; }`;
+
+interface Distribution {
+    draws: number;
+    matches: number[];
+    most: number[];
+    least: number[];
+    chance: number[];
+}
+
+// How many draws had each number of matches, against the chance
+// (hypergeometric) distribution. Only 14-number draws: the 15-number draws of
+// the early years have a different chance curve.
+function distribution(rows: Row[]): Distribution {
+    const era = rows.filter((row) => row.drawn === 14);
+    const choose = (n: number, k: number) => {
+        if (k < 0 || k > n) return 0;
+        let result = 1;
+        for (let i = 1; i <= k; i++) result = (result * (n - k + i)) / i;
+        return result;
+    };
+    const matches = Array.from({ length: DIST_TO - DIST_FROM + 1 }, (_, i) => DIST_FROM + i);
+    const total = choose(NUMBER_COUNT, GROUP_SIZE);
+    const dist = {
+        draws: era.length,
+        matches,
+        most: matches.map((m) => era.filter((row) => row.matchesMost === m).length),
+        least: matches.map((m) => era.filter((row) => row.matchesLeast === m).length),
+        chance: matches.map((m) => (era.length * choose(GROUP_SIZE, m) * choose(NUMBER_COUNT - GROUP_SIZE, 14 - m)) / total),
+    };
+    for (const [name, counts] of [['most', dist.most], ['least', dist.least]] as const) {
+        const outside = era.length - counts.reduce((a, b) => a + b, 0);
+        if (outside > 0) console.warn(`${outside} draw(s) of the ${name} group fall outside ${DIST_FROM}–${DIST_TO} matches.`);
+    }
+    return dist;
+}
+
+// Grouped bars (most / least frequent) per match count, with the chance
+// distribution as a dashed line. Returns SVG for the panel.
+function distributionPanel(dist: Distribution, top: number, height: number, margin: number, left: number, right: number): string {
+    const high = Math.ceil(Math.max(...dist.most, ...dist.least, ...dist.chance) / 200) * 200;
+    const y = (value: number) => top + height - (value / high) * height;
+    const slot = (right - left) / dist.matches.length;
+    const barWidth = Math.min(22, slot * 0.3);
+    const gap = 3;
+    const radius = 3;
+
+    const ticks: number[] = [];
+    for (let t = 0; t <= high; t += 200) ticks.push(t);
+    const gridLines = ticks.map((t) => `
+    <line x1="${margin}" y1="${y(t).toFixed(1)}" x2="${right}" y2="${y(t).toFixed(1)}" class="${t === 0 ? 'zero' : 'grid'}" />
+    <text x="${margin}" y="${(y(t) - 6).toFixed(1)}" class="tick">${formatCount(t)}</text>`).join('');
+
+    const bar = (x: number, count: number, cls: string, label: string) => {
+        if (count === 0) return '';
+        const topY = y(count);
+        const r = Math.min(radius, y(0) - topY);
+        const d = `M${x.toFixed(1)},${y(0)} V${(topY + r).toFixed(1)} Q${x.toFixed(1)},${topY.toFixed(1)} ${(x + r).toFixed(1)},${topY.toFixed(1)} `
+            + `H${(x + barWidth - r).toFixed(1)} Q${(x + barWidth).toFixed(1)},${topY.toFixed(1)} ${(x + barWidth).toFixed(1)},${(topY + r).toFixed(1)} V${y(0)} Z`;
+        return `<path d="${d}" class="${cls}"><title>${label}: ${formatCount(count)} draws</title></path>`;
+    };
+
+    const bars = dist.matches.map((m, i) => {
+        const centre = left + slot * (i + 0.5);
+        return bar(centre - gap / 2 - barWidth, dist.most[i], 'bar-most', `${m} matches, 14 most frequent`)
+            + bar(centre + gap / 2, dist.least[i], 'bar-least', `${m} matches, 14 least frequent`)
+            + `<text x="${centre.toFixed(1)}" y="${top + height + 20}" class="tick" text-anchor="middle">${m}</text>`;
+    }).join('\n    ');
+
+    const points = dist.matches.map((_, i) => ({ x: left + slot * (i + 0.5), y: y(dist.chance[i]) }));
+    const line = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    const dots = points.map((p, i) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" class="chance-dot"><title>${dist.matches[i]} matches by chance: ${dist.chance[i].toFixed(1)} draws</title></circle>`).join('');
+
+    return `${gridLines}
+    ${bars}
+    <path d="${line}" class="chance" />
+    ${dots}
+    <text x="${right}" y="${top + height + 42}" class="note" text-anchor="end">Matches in the draw</text>`;
+}
+
+// The distribution on its own, with its own header and legend.
+function distributionChart(dist: Distribution): string {
+    const width = 1100;
+    const margin = 48;
+    const right = width - margin;
+    const left = margin + 56;
+    const top = 170;
+    const panelHeight = 300;
+    const legendY = top + panelHeight + 84;
+    const height = legendY + 78;
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    <style>${CSS}
+    </style>
+    <rect width="100%" height="100%" fill="${THEME.surface}" />
+    <rect x="${margin}" y="34" width="44" height="6" class="accent" />
+    <text x="${right}" y="42" class="author" text-anchor="end">${AUTHOR}</text>
+    <text x="${margin}" y="78" class="title">Matches per draw against chance</text>
+    <text x="${margin}" y="104" class="subtitle">Draws with each number of matches with the 14 most and 14 least frequent numbers before them (${formatCount(dist.draws)} draws of 14 numbers)</text>
+    <text x="${margin}" y="${top - 22}" class="panel">Number of draws</text>
+    ${distributionPanel(dist, top, panelHeight, margin, left, right)}
+    <rect x="${margin}" y="${legendY - 9}" width="10" height="10" class="accent" />
+    <text x="${margin + 18}" y="${legendY}" class="note">14 most frequent</text>
+    <rect x="${margin + 150}" y="${legendY - 9}" width="10" height="10" class="info" />
+    <text x="${margin + 168}" y="${legendY}" class="note">14 least frequent</text>
+    <line x1="${margin + 310}" y1="${legendY - 4}" x2="${margin + 340}" y2="${legendY - 4}" class="chance" />
+    <text x="${margin + 350}" y="${legendY}" class="note">Expected by chance</text>
+    <text x="${margin}" y="${legendY + 36}" class="footer">Groups are ranked on all draws before each draw; ties go to the lower number. Draws of the early years, with 15 numbers, are left out because chance differs for them.</text>
+    </svg>`;
+}
+
+function chart(rows: Row[], summary: ReturnType<typeof buildSummary>, dist: Distribution): string {
     const width = 1100;
     const margin = 48;
     const right = width - margin;
@@ -107,7 +247,8 @@ function chart(rows: Row[], summary: ReturnType<typeof buildSummary>): string {
     const panelHeight = 230;
     const top1 = 170;
     const top2 = top1 + panelHeight + 90;
-    const legendY = top2 + panelHeight + 64;
+    const top3 = top2 + panelHeight + 90;
+    const legendY = top3 + panelHeight + 80;
     const height = legendY + 90;
 
     const path = (values: number[], offset: number, y: (value: number) => number) =>
@@ -155,23 +296,7 @@ function chart(rows: Row[], summary: ReturnType<typeof buildSummary>): string {
         `${label}: ${s.averageMatches.toFixed(2)} matches per draw vs ${s.averageExpected.toFixed(2)} expected (${sign(s.excessMatches)} in total, z = ${s.zScore.toFixed(2)})`;
 
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-    <style>
-        text { fill: ${THEME.ink}; font-family: 'Helvetica Neue', Helvetica, Arial, 'Segoe UI', sans-serif; font-variant-numeric: tabular-nums; }
-        .title { font-size: 30px; font-weight: 700; letter-spacing: -0.3px; }
-        .subtitle { font-size: 15px; fill: ${THEME.secondary}; }
-        .panel { font-size: 14px; font-weight: 700; }
-        .tick { font-size: 12px; fill: ${THEME.secondary}; }
-        .note { font-size: 13px; fill: ${THEME.secondary}; }
-        .author { font-size: 12px; fill: ${THEME.secondary}; letter-spacing: 0.6px; }
-        .footer { font-size: 12px; fill: ${THEME.muted}; }
-        .grid { stroke: ${THEME.rule}; stroke-width: 1; }
-        .zero { stroke: ${THEME.muted}; stroke-width: 1; }
-        .series { fill: none; stroke-width: 2; stroke-linejoin: round; }
-        .most { stroke: ${THEME.accent}; }
-        .least { stroke: ${THEME.info}; }
-        .chance { fill: none; stroke: ${THEME.ink}; stroke-width: 1.5; stroke-dasharray: 6 5; }
-        .accent { fill: ${THEME.accent}; }
-        .info { fill: ${THEME.info}; }
+    <style>${CSS}
     </style>
     <rect width="100%" height="100%" fill="${THEME.surface}" />
     <rect x="${margin}" y="34" width="44" height="6" class="accent" />
@@ -193,6 +318,9 @@ function chart(rows: Row[], summary: ReturnType<typeof buildSummary>): string {
     <path d="${path(cumMost, 0, y2)}" class="series most" />
     ${xAxis(top2 + panelHeight)}
 
+    <text x="${margin}" y="${top3 - 22}" class="panel">Draws by number of matches (${formatCount(dist.draws)} draws of 14 numbers)</text>
+    ${distributionPanel(dist, top3, panelHeight, margin, left, right)}
+
     <rect x="${margin}" y="${legendY - 9}" width="10" height="10" class="accent" />
     <text x="${margin + 18}" y="${legendY}" class="note">${line('14 most frequent', summary.mostFrequent)}</text>
     <rect x="${margin}" y="${legendY + 17}" width="10" height="10" class="info" />
@@ -213,25 +341,41 @@ function buildSummary(rows: Row[]) {
     };
 }
 
-function main() {
+// Discord shows PNG images but not SVG, so each chart is also saved as a PNG.
+async function renderPng(svgPath: string): Promise<string> {
+    const pngPath = svgPath.replace(/\.svg$/, '.png');
+    const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_PATH || undefined });
+    try {
+        const page = await browser.newPage({ deviceScaleFactor: PNG_SCALE });
+        await page.setContent(`<!doctype html><body style="margin:0;background:${THEME.surface}">${fs.readFileSync(svgPath, 'utf8')}</body>`);
+        await page.locator('svg').screenshot({ path: pngPath });
+    } finally {
+        await browser.close();
+    }
+    return pngPath;
+}
+
+async function main() {
     const rows = run();
     if (rows.length === 0) throw new Error('No draws found in kino-history.json');
 
     const summary = buildSummary(rows);
+    const dist = distribution(rows);
     const draws = rows.map(({ variance, ...row }) => row);
-    fs.writeFileSync(JSON_OUT, JSON.stringify({ summary, draws }), 'utf8');
-    fs.writeFileSync(SVG_OUT, chart(rows, summary), 'utf8');
+    fs.writeFileSync(JSON_OUT, JSON.stringify({ summary, distribution: dist, draws }), 'utf8');
+    fs.writeFileSync(SVG_OUT, chart(rows, summary, dist), 'utf8');
+    fs.writeFileSync(DIST_SVG_OUT, distributionChart(dist), 'utf8');
+    const pngs = [await renderPng(SVG_OUT), await renderPng(DIST_SVG_OUT)];
 
     console.log(`Draws analysed: #${summary.fromDraw}–#${summary.toDraw} (${formatCount(summary.draws)})`);
     console.log('14 most frequent: ', summary.mostFrequent);
     console.log('14 least frequent:', summary.leastFrequent);
     console.log(`JSON:  ${JSON_OUT}`);
-    console.log(`Chart: ${SVG_OUT}`);
+    console.log(`Charts: ${SVG_OUT}, ${DIST_SVG_OUT}`);
+    console.log(`PNGs:   ${pngs.join(', ')}`);
 }
 
-try {
-    main();
-} catch (error) {
+main().catch((error: unknown) => {
     console.error(error);
     process.exitCode = 1;
-}
+});
